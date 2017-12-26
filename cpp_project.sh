@@ -1,0 +1,161 @@
+# This script initialize a new automake project.
+# Copyright (C) 2017 Gabriele Labita
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+# Usage:
+# > ./cpp_project.sh <name_of_the_project>
+#
+# Create the a new c++ project based on autotools, with the name:
+# name_of_the_project
+
+if [ $# -ne 1 ]; then
+    echo "Invalid arguments. You must specified name of the project."
+    echo "Usage: "
+    echo " > ./cpp_project.sh name_of_the_project"
+    exit 1
+fi
+if [ ! -d "$1" ]; then
+   mkdir $1
+else
+    echo "$1 Exists. Cannot create a new project."
+    exit 1
+fi
+
+cd $1
+
+#Create Build Scripts
+echo "#! /bin/sh
+aclocal && automake --add-missing && autoconf" >> autogen.sh
+chmod +x autogen.sh
+
+echo "CURRENT=\$(dirname \".\")
+CURRENT=\$(readlink -f \$CURRENT)
+
+DIR=\$(dirname \"\$0\")
+DIR=\$(readlink -f \$DIR)
+
+if [ ! -d \"\$DIR/build\" ]; then
+    mkdir build
+fi
+BUILDDIR=\"\$DIR/build\"
+
+if [ -f \"\$BUILDDIR/Makefile\" ]; then
+    cd \$BUILDDIR
+    make clean
+fi
+
+cd \$DIR
+./autogen.sh
+
+cd \$BUILDDIR
+../configure
+#../configure --program-prefix put_prefix_here
+make
+
+if [ \"\$1\" == \"--test\" ]; then
+    make check
+    ./test/$1
+fi
+
+cd \$CURRENT" >> rebuild.sh
+chmod +x rebuild.sh
+
+#Create Directories
+mkdir src
+mkdir test
+
+#Create Autotools Files
+touch LICENSE
+touch README
+touch COPYING
+touch INSTALL
+touch AUTHORS
+touch ChangeLog
+touch NEWS
+
+echo "$USER" >> AUTHORS
+
+echo "AC_INIT([$1], [1.0.0], [author-$USER])
+AM_INIT_AUTOMAKE([subdir-objects])
+CXXFLAGS = -Wall -Werror -std=gnu++17
+AC_PROG_CXX
+AC_CONFIG_HEADERS([config.h])
+
+AC_CONFIG_FILES([
+        Makefile
+        src/Makefile
+        test/Makefile
+])
+
+AC_OUTPUT" >> configure.ac
+
+echo "SUBDIRS = src test
+dist_doc_DATA = README" >> Makefile.am
+
+echo "bin_PROGRAMS = $1
+#Use -l option to link libraries, for example: -lsqlite3
+#$1_LDADD =  -lib
+#$1_CXXFLAGS = -std=c++17
+$1_SOURCES = main.cc" >> src/Makefile.am
+
+echo "#include<iostream>
+
+int main() {
+    std::cout << \"Hello!\" << std::endl;
+    return 0;
+}" >> src/main.cc
+
+
+# Test Generation
+
+echo "#include \"./sample_test.cc\"
+#include \"CppUTest/CommandLineTestRunner.h\"
+
+int main(int ac, char** av)
+{
+    return CommandLineTestRunner::RunAllTests(ac, av);
+}
+" >> test/cpputest_main.cc
+echo "#include <CppUTest/TestHarness.h>
+#include <CppUTestExt/MockSupport.h>
+
+
+TEST_GROUP(TestGroupName) {
+    void setup() { }
+    void teardown() {
+        mock().clear();
+    }
+};
+
+/**
+ * HAVE Initial environment
+ * WHEN Perform an action
+ * THEN This happens
+ */
+TEST(TestGroupName, Test_01) {
+    CHECK_EQUAL(\"Expectation\", \"Expectation\");
+}" >> test/sample_test.cc
+
+echo "AM_CXXFLGAS = -W -Wall
+LDADD = -lCppUTest -lCppUTestExt
+check_PROGRAMS = $1
+$1_SOURCES = cpputest_main.cc
+
+# testN_SOURCES = test1.cc ../src/dep1.cc ...." >> test/Makefile.am
+
+autoheader
+aclocal
+autoconf
+automake --add-missing
+exit 0
