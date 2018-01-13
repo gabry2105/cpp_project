@@ -121,10 +121,30 @@ echo "SUBDIRS = src test
 dist_doc_DATA = README" >> Makefile.am
 
 echo "bin_PROGRAMS = $1
-#Use -l option to link libraries, for example: -lsqlite3
-#$1_LDADD =  -lib
-#$1_CXXFLAGS = -std=c++17
-$1_SOURCES = main.cc" >> src/Makefile.am
+$1_SOURCES = main.cc
+
+# Some usefull notes are reported below.
+# 01. To add an existing library use -l options
+#      $1_LDADD =  -lib
+#
+# 02. To add some custom flag to the project use _CXXFLAGS
+#      $1_CXXFLAGS = -std=c++17
+#
+# 03. To compile an inner static library use noinst_, this avoid the
+#     installation (static library must be linked directly to the the
+#     compiled file).
+#      noinst_LIBRARIES = libstaticlibname.a
+#      libstaticlibname_a_SOURCES = ... list of sources ...
+#
+#      bin_PROGRAM = $1
+#      $1_SOURCES = ....
+#      $1_LDADD = libstaticlibname.a
+#
+#     Remember to add AC_PROG_RANLIB macro in configure.ac
+#     AC_PROG_RANLIB: This is required if any libraries are built in
+#                     the package. See Particular Program Checks in
+#                     The Autoconf Manual. 
+" >> src/Makefile.am
 
 echo "#include<iostream>
 
@@ -167,9 +187,7 @@ TEST(TestGroupName, Test_01) {
 echo "AM_CXXFLGAS = -W -Wall
 LDADD = -lCppUTest -lCppUTestExt
 check_PROGRAMS = $1
-$1_SOURCES = cpputest_main.cc
-
-# testN_SOURCES = test1.cc ../src/dep1.cc ...." >> test/Makefile.am
+$1_SOURCES = cpputest_main.cc" >> test/Makefile.am
 
 autoreconf --install
 exit 0
