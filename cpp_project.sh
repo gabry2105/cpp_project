@@ -34,11 +34,6 @@ fi
 
 cd $1
 
-#Create Build Scripts
-echo "#! /bin/sh
-aclocal && automake --add-missing && autoconf" >> autogen.sh
-chmod +x autogen.sh
-
 echo "CURRENT=\$(dirname \".\")
 CURRENT=\$(readlink -f \$CURRENT)
 
@@ -56,21 +51,36 @@ if [ -f \"\$BUILDDIR/Makefile\" ]; then
 fi
 
 cd \$DIR
-./autogen.sh
 
 cd \$BUILDDIR
 ../configure
-#../configure --program-prefix put_prefix_here
-make
-
-if [ \"\$1\" == \"--test\" ]; then
-    make check
-    ./test/$1
-fi
+make all
 
 cd \$CURRENT" >> rebuild.sh
-chmod +x rebuild.sh
 
+echo "CURRENT=\$(dirname \".\")
+CURRENT=\$(readlink -f \$CURRENT)
+
+DIR=\$(dirname \"\$0\")
+DIR=\$(readlink -f \$DIR)
+
+cd \$DIR
+
+BUILDDIR=\"\$DIR/build\"
+
+if [ ! -d \"\$DIR/build\" ]; then
+    mkdir build
+    cd \$BUILDDIR
+    ../configure
+fi
+cd \$BUILDDIR
+
+make all
+
+cd \$CURRENT" >> build.sh
+
+chmod +x rebuild.sh
+chmod +x build.sh
 #Create Directories
 mkdir src
 mkdir test
@@ -79,16 +89,23 @@ mkdir test
 touch LICENSE
 touch README
 touch COPYING
-touch INSTALL
 touch AUTHORS
 touch ChangeLog
 touch NEWS
 
 echo "$USER" >> AUTHORS
+echo "
+     #USEFULL CONFIGURATION OPTIONS
+
+     Give a prefix to the name of the project:
+      > configure --program-prefix put_prefix_here
+
+     Perform a cross compilation
+      > configure --host [hostsystem] --target [target-system]
+" >> INSTALL
 
 echo "AC_INIT([$1], [1.0.0], [author-$USER])
-AM_INIT_AUTOMAKE([subdir-objects])
-CXXFLAGS = -Wall -Werror -std=gnu++17
+AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
 AC_PROG_CXX
 AC_CONFIG_HEADERS([config.h])
 
@@ -154,8 +171,5 @@ $1_SOURCES = cpputest_main.cc
 
 # testN_SOURCES = test1.cc ../src/dep1.cc ...." >> test/Makefile.am
 
-autoheader
-aclocal
-autoconf
-automake --add-missing
+autoreconf --install
 exit 0
