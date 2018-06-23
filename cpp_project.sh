@@ -106,8 +106,11 @@ echo "
 
 echo "AC_INIT([$1], [1.0.0], [author-$USER])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
-AC_PROG_CXX
+
 AC_CONFIG_HEADERS([config.h])
+
+AC_PROG_MAKE_SET
+AC_PROG_CXX
 
 AC_CONFIG_FILES([
         Makefile
@@ -189,5 +192,6 @@ LDADD = -lCppUTest -lCppUTestExt
 check_PROGRAMS = $1
 $1_SOURCES = cpputest_main.cc" >> test/Makefile.am
 
-autoreconf --install
+echo "Project created"
+echo "Run autoreconf --install"
 exit 0
