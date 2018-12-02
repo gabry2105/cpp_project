@@ -107,12 +107,16 @@ echo "
 echo "AC_INIT([$1], [1.0.0], [author-$USER])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
 
-AC_CONFIG_HEADERS([config.h])
-
 AC_PROG_MAKE_SET
-AC_PROG_CXX
-
-AC_CONFIG_FILES([
+AC_PROG_CXX" >> configure.ac
+# Library
+if [[ $1 == lib* ]] ;
+then
+    echo "AM_PROG_AR" >> configure.ac
+    echo "LT_INIT" >> configure.ac
+    echo "AC_PROG_LIBTOOL" >> configure.ac
+fi
+echo "AC_CONFIG_FILES([
         Makefile
         src/Makefile
         test/Makefile
@@ -123,7 +127,29 @@ AC_OUTPUT" >> configure.ac
 echo "SUBDIRS = src test
 dist_doc_DATA = README" >> Makefile.am
 
-echo "bin_PROGRAMS = $1
+# Library
+if [[ $1 == lib* ]] ;
+then
+    mkdir src/$1
+    echo "lib_LTLIBRARIES = $1.la
+nobase_include_HEADERS = $1/sample.hh
+
+# To include some lib, es libcurl:
+# $1_la_LIBADD = -lcurl
+
+$1_la_CXXFLAGS = -std=c++17
+
+$1_la_SOURCES = $1/sample.hh sample.cc
+" >> src/Makefile.am
+
+    echo "int foo();" >> src/$1/sample.hh
+    echo "#include \"$1/sample.hh\"" >> src/sample.cc
+    echo "int foo() {" >> src/sample.cc
+    echo "    return 42;" >> src/sample.cc
+    echo "}" >> src/sample.cc
+
+else
+    echo "bin_PROGRAMS = $1
 $1_SOURCES = main.cc
 
 # Some usefull notes are reported below.
@@ -155,7 +181,7 @@ int main() {
     std::cout << \"Hello!\" << std::endl;
     return 0;
 }" >> src/main.cc
-
+fi
 
 # Test Generation
 
